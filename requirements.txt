@@ -1,0 +1,10 @@
+httpx==0.27.0
+sqlalchemy==2.0.36
+# psycopg2-binary is used instead of psycopg2 to avoid needing pg_config/libpq-dev locally.
+# However, geoalchemy2 pulls in psycopg2 as a dependency, which requires pg_config to build.
+# In the container this is handled by installing libpq-dev and gcc in the Dockerfile.
+# To install locally, you need PostgreSQL dev tools installed (e.g. full PostgreSQL on Windows).
+psycopg2-binary==2.9.9
+geoalchemy2==0.15.2
+alembic==1.13.3
+pydantic-settings==2.5.2

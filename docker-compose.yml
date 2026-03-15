@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: swarm
+      POSTGRES_PASSWORD: swarm
+      POSTGRES_DB: swarm_checkins
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swarm -d swarm_checkins"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  sync:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://swarm:swarm@db:5432/swarm_checkins
+      FOURSQUARE_TOKEN: ${FOURSQUARE_TOKEN}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  dev:
+    build: .
+    command: sleep infinity
+    environment:
+      DATABASE_URL: postgresql://swarm:swarm@db:5432/swarm_checkins
+      FOURSQUARE_TOKEN: ${FOURSQUARE_TOKEN}
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
