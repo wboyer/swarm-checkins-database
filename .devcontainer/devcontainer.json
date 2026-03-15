@@ -2,7 +2,9 @@
   "name": "swarm-checkins",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false
+    }
   },
   "dockerComposeFile": "../docker-compose.yml",
   "service": "dev",
