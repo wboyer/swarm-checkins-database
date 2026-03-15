@@ -2,6 +2,7 @@ import datetime
 import logging
 
 from geoalchemy2.elements import WKTElement
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -48,34 +49,35 @@ def _parse_checkin(item: dict) -> dict:
 
 def _upsert_venue(session: Session, venue_data: dict) -> None:
     parsed = _parse_venue(venue_data)
-    venue = session.get(Venue, parsed["id"])
+    if parsed["lat"] is not None and parsed["lng"] is not None:
+        parsed["location"] = WKTElement(f"POINT({parsed['lng']} {parsed['lat']})", srid=4326)
 
-    if venue is None:
-        venue = Venue(**parsed)
-        if parsed["lat"] is not None and parsed["lng"] is not None:
-            venue.location = WKTElement(f"POINT({parsed['lng']} {parsed['lat']})", srid=4326)
-        session.add(venue)
-    else:
-        for k, v in parsed.items():
-            setattr(venue, k, v)
-        if parsed["lat"] is not None and parsed["lng"] is not None:
-            venue.location = WKTElement(f"POINT({parsed['lng']} {parsed['lat']})", srid=4326)
-        venue.updated_at = datetime.datetime.utcnow()
+    stmt = (
+        insert(Venue)
+        .values(**parsed)
+        .on_conflict_do_update(
+            index_elements=["id"],
+            set_={k: v for k, v in parsed.items() if k != "id"},
+        )
+    )
+    session.execute(stmt)
 
 
 def _upsert_checkin(session: Session, item: dict) -> None:
-    parsed = _parse_checkin(item)
-
-    checkin = session.get(Checkin, parsed["id"])
-    if checkin is None:
-        checkin = Checkin(**parsed)
-        session.add(checkin)
-    else:
-        for k, v in parsed.items():
-            setattr(checkin, k, v)
-
     if item.get("venue"):
         _upsert_venue(session, item["venue"])
+
+    parsed = _parse_checkin(item)
+
+    stmt = (
+        insert(Checkin)
+        .values(**parsed)
+        .on_conflict_do_update(
+            index_elements=["id"],
+            set_={k: v for k, v in parsed.items() if k != "id"},
+        )
+    )
+    session.execute(stmt)
 
 
 def _get_or_create_sync_state(session: Session) -> SyncState:

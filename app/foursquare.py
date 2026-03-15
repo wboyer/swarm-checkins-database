@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Iterator
 
@@ -7,6 +8,8 @@ from .config import settings
 
 BASE_URL = "https://api.foursquare.com/v2"
 API_RATE_LIMIT_DELAY = 0.5  # seconds between paginated requests
+
+logger = logging.getLogger(__name__)
 
 
 class FoursquareClient:
@@ -21,7 +24,7 @@ class FoursquareClient:
         }
 
     def _get_checkins_page(self, limit: int, offset: int, after_timestamp: int | None) -> dict:
-        params = self._params(limit=limit, offset=offset, sort="oldestfirst")
+        params = self._params(limit=limit, offset=offset)
         if after_timestamp is not None:
             params["afterTimestamp"] = after_timestamp
 
@@ -40,16 +43,26 @@ class FoursquareClient:
         limit = settings.sync_batch_size
 
         while True:
-            page = self._get_checkins_page(limit=limit, offset=offset, after_timestamp=after_timestamp)
+            page = self._get_checkins_page(
+                limit=limit, offset=offset, after_timestamp=after_timestamp
+            )
             items = page["items"]
+            total = page["count"]
 
             if not items:
                 break
 
+            logger.info(
+                "Page offset=%d: count=%d, items=%d, first_id=%s",
+                offset, total, len(items), items[0]["id"] if items else None,
+            )
+            logger.info(
+                "Fetched %d checkins (offset %d / %d total).", len(items), offset, total
+            )
             yield from items
 
             offset += len(items)
-            if offset >= page["count"]:
+            if offset >= total:
                 break
 
             time.sleep(API_RATE_LIMIT_DELAY)
