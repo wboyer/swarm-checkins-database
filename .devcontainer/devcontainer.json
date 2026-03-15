@@ -1,14 +1,12 @@
 {
   "name": "swarm-checkins",
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {} /*,
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-      "moby": false
-    }*/
+    "ghcr.io/devcontainers/features/git:1": {}
   },
   "dockerComposeFile": "../docker-compose.yml",
   "service": "dev",
   "workspaceFolder": "/app",
+  "postCreateCommand": "pip install -r requirements.txt",
   "shutdownAction": "stopCompose",
   "customizations": {
     "vscode": {
