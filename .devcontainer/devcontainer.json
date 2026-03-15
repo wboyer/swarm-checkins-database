@@ -1,7 +1,8 @@
 {
   "name": "swarm-checkins",
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {}
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {}
   },
   "dockerComposeFile": "../docker-compose.yml",
   "service": "dev",
@@ -16,7 +17,8 @@
         "ms-python.black-formatter",
         "ms-python.pylint",
         "mtxr.sqltools",
-        "mtxr.sqltools-driver-pg"
+        "mtxr.sqltools-driver-pg",
+        "ms-azuretools.vscode-bicep"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",

@@ -1,0 +1,83 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE: ${{ vars.ACR_LOGIN_SERVER }}/swarm-checkins-database-sync
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push image
+        run: |
+          docker build -t ${{ env.IMAGE }}:${{ github.sha }} -t ${{ env.IMAGE }}:latest .
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy infrastructure
+        run: |
+          az deployment group create \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --template-file infra/main.bicep \
+            --parameters infra/main.bicepparam \
+            --parameters foursquareToken=${{ secrets.FOURSQUARE_TOKEN }} \
+            --parameters postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
+            --parameters imageTag=${{ github.sha }}
+
+      - name: Update job images
+        run: |
+          az containerapp job update \
+            --name migrate \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }}
+          az containerapp job update \
+            --name sync \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Run migrations
+        run: |
+          EXECUTION=$(az containerapp job start \
+            --name migrate \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --query name --output tsv)
+
+          echo "Migration execution: $EXECUTION"
+
+          while true; do
+            STATUS=$(az containerapp job execution show \
+              --name migrate \
+              --resource-group ${{ vars.RESOURCE_GROUP }} \
+              --job-execution-name "$EXECUTION" \
+              --query properties.status --output tsv)
+            echo "Status: $STATUS"
+            case "$STATUS" in
+              Succeeded) echo "Migrations complete."; break ;;
+              Failed|Stopped) echo "Migration failed."; exit 1 ;;
+              *) sleep 5 ;;
+            esac
+          done
+
+      - name: Run sync
+        run: |
+          az containerapp job start \
+            --name sync \
+            --resource-group ${{ vars.RESOURCE_GROUP }}
