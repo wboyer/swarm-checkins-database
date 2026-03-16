@@ -114,7 +114,7 @@ python -m app.main
 
 Three tables are created by the Alembic migration:
 
-- **`venues`** — Foursquare venue data, including a PostGIS `POINT` geometry column and full raw JSON
+- **`venues`** — Foursquare venues, including a PostGIS `POINT` geometry column and full raw JSON
 - **`checkins`** — Individual checkins with a foreign key to `venues` and full raw JSON
 - **`sync_state`** — Single-row table tracking the last sync timestamp and total count
 
