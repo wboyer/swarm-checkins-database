@@ -124,4 +124,4 @@ Three tables are created by the Alembic migration:
 
 ## Deployment
 
-The app is designed to deploy to **Azure Container Apps** with images stored in **Azure Container Registry**. Each sync run is a one-shot container execution — start it on a schedule (e.g. daily cron) rather than running it as a persistent service.
+The app is designed to deploy to **Azure Container Apps** with images stored in **Azure Container Registry**. Each sync run is a one-shot container execution, run on a schedule (e.g. daily cron) rather than as a persistent service.
