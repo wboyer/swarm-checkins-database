@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # libpq-dev provides pg_config, required to build psycopg2 (pulled in by geoalchemy2).
-# gcc is needed to compile the extension.
+# gcc is needed to compile the psycopg2 C extension.
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
