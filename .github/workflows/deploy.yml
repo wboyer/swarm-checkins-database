@@ -4,28 +4,12 @@ on:
   push:
     branches: [main]
 
-env:
-  IMAGE: ${{ vars.ACR_LOGIN_SERVER }}/swarm-checkins-database-sync
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Log in to ACR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
-
-      - name: Build and push image
-        run: |
-          docker build -t ${{ env.IMAGE }}:${{ github.sha }} -t ${{ env.IMAGE }}:latest .
-          docker push ${{ env.IMAGE }}:${{ github.sha }}
-          docker push ${{ env.IMAGE }}:latest
 
       - name: Azure login
         uses: azure/login@v2
@@ -34,24 +18,37 @@ jobs:
 
       - name: Deploy infrastructure
         run: |
-          az deployment group create \
+          ACR_LOGIN_SERVER=$(az deployment group create \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --template-file infra/main.bicep \
             --parameters infra/main.bicepparam \
             --parameters foursquareToken=${{ secrets.FOURSQUARE_TOKEN }} \
             --parameters postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
-            --parameters imageTag=${{ github.sha }}
+            --parameters imageTag=${{ github.sha }} \
+            --query properties.outputs.acrLoginServer.value --output tsv)
+          echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
+
+      - name: Log in to ACR
+        run: az acr login --name ${{ env.ACR_LOGIN_SERVER }}
+
+      - name: Build and push image
+        run: |
+          IMAGE=${{ env.ACR_LOGIN_SERVER }}/swarm-checkins-database-sync
+          docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest .
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
 
       - name: Update job images
         run: |
+          IMAGE=${{ env.ACR_LOGIN_SERVER }}/swarm-checkins-database-sync
           az containerapp job update \
             --name migrate \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE }}:${{ github.sha }}
+            --image $IMAGE:${{ github.sha }}
           az containerapp job update \
             --name sync \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE }}:${{ github.sha }}
+            --image $IMAGE:${{ github.sha }}
 
       - name: Run migrations
         run: |
