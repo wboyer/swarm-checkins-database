@@ -1,6 +1,9 @@
 @description('Azure region for all resources.')
 param location string = resourceGroup().location
 
+@description('Azure region for PostgreSQL (may differ from main location due to quota restrictions).')
+param postgresLocation string = location
+
 @description('Short alphanumeric prefix used in resource names. Must be globally unique enough for ACR and Postgres.')
 param appName string
 
@@ -35,7 +38,7 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   name: '${appName}-db'
-  location: location
+  location: postgresLocation
   sku: {
     name: 'Standard_B1ms'
     tier: 'Burstable'
