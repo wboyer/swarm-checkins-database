@@ -23,44 +23,40 @@ jobs:
           az provider register --namespace Microsoft.ContainerRegistry --wait
           az provider register --namespace Microsoft.OperationalInsights --wait
 
+      - name: Ensure ACR exists and push image
+        run: |
+          ACR_NAME="${{ vars.APP_NAME }}acr"
+          ACR_LOGIN_SERVER="${ACR_NAME}.azurecr.io"
+
+          az acr create \
+            --name $ACR_NAME \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --sku Basic --admin-enabled true 2>/dev/null || true
+
+          az acr login --name $ACR_NAME
+
+          IMAGE="$ACR_LOGIN_SERVER/swarm-checkins-database-sync"
+          docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest .
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
+          echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
+
       - name: Deploy infrastructure
         run: |
-          ACR_LOGIN_SERVER=$(az deployment group create \
+          az deployment group create \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --template-file infra/main.bicep \
             --parameters infra/main.bicepparam \
             --parameters foursquareToken=${{ secrets.FOURSQUARE_TOKEN }} \
             --parameters postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
-            --parameters imageTag=${{ github.sha }} \
-            --query properties.outputs.acrLoginServer.value --output tsv)
-          echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
-
-      - name: Log in to ACR
-        run: az acr login --name ${{ env.ACR_LOGIN_SERVER }}
-
-      - name: Build and push image
-        run: |
-          IMAGE=${{ env.ACR_LOGIN_SERVER }}/swarm-checkins-database-sync
-          docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest .
-          docker push $IMAGE:${{ github.sha }}
-          docker push $IMAGE:latest
-
-      - name: Update job images
-        run: |
-          IMAGE=${{ env.ACR_LOGIN_SERVER }}/swarm-checkins-database-sync
-          az containerapp job update \
-            --name migrate \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --image $IMAGE:${{ github.sha }}
-          az containerapp job update \
-            --name sync \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --image $IMAGE:${{ github.sha }}
+            --parameters appName=${{ vars.APP_NAME }} \
+            --parameters imageTag=${{ github.sha }}
 
       - name: Run migrations
         run: |
           EXECUTION=$(az containerapp job start \
-            --name migrate \
+            --name ${{ vars.APP_NAME }}-migrate \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --query name --output tsv)
 
@@ -68,7 +64,7 @@ jobs:
 
           while true; do
             STATUS=$(az containerapp job execution show \
-              --name migrate \
+              --name ${{ vars.APP_NAME }}-migrate \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --job-execution-name "$EXECUTION" \
               --query properties.status --output tsv)
@@ -83,5 +79,5 @@ jobs:
       - name: Run sync
         run: |
           az containerapp job start \
-            --name sync \
+            --name ${{ vars.APP_NAME }}-sync \
             --resource-group ${{ vars.RESOURCE_GROUP }}

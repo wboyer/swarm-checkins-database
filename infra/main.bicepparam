@@ -1,6 +1,5 @@
 using './main.bicep'
 
-param appName = 'swarmcheckins'          // change to something globally unique; must be lowercase alphanumeric
 param postgresLocation = 'southcentralus'
 param syncCronExpression = '0 6 * * *'  // daily at 06:00 UTC
 
