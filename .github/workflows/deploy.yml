@@ -50,7 +50,6 @@ jobs:
             --parameters infra/main.bicepparam \
             --parameters foursquareToken=${{ secrets.FOURSQUARE_TOKEN }} \
             --parameters postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} \
-            --parameters appName=${{ vars.APP_NAME }} \
             --parameters imageTag=${{ github.sha }}
 
       - name: Run migrations
