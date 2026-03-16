@@ -11,6 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug secret presence
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          if [ -z "$AZURE_CLIENT_ID" ]; then echo "AZURE_CLIENT_ID is missing or empty"; else echo "AZURE_CLIENT_ID is set (length: ${#AZURE_CLIENT_ID})"; fi
+          if [ -z "$AZURE_CLIENT_SECRET" ]; then echo "AZURE_CLIENT_SECRET is missing or empty"; else echo "AZURE_CLIENT_SECRET is set (length: ${#AZURE_CLIENT_SECRET})"; fi
+          if [ -z "$AZURE_TENANT_ID" ]; then echo "AZURE_TENANT_ID is missing or empty"; else echo "AZURE_TENANT_ID is set (length: ${#AZURE_TENANT_ID})"; fi
+          if [ -z "$AZURE_SUBSCRIPTION_ID" ]; then echo "AZURE_SUBSCRIPTION_ID is missing or empty"; else echo "AZURE_SUBSCRIPTION_ID is set (length: ${#AZURE_SUBSCRIPTION_ID})"; fi
+
       - name: Azure login
         uses: azure/login@v1
         with:
