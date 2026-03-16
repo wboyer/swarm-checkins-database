@@ -37,7 +37,7 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
 // ---------------------------------------------------------------------------
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
-  name: '${appName}-db'
+  name: '${appName}-ps'
   location: postgresLocation
   sku: {
     name: 'Standard_B1ms'
