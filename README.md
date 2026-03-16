@@ -1,6 +1,6 @@
 # Swarm Checkins Database
 
-Mirrors Foursquare/Swarm checkin data into a personal PostgreSQL database with PostGIS support.
+Mirrors Foursquare/Swarm checkin data into a PostgreSQL database with PostGIS support.
 
 ## Prerequisites
 
