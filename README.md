@@ -53,10 +53,6 @@ docker compose exec db psql -U swarm -d swarm_checkins
 The sync mode is determined by the `sync_state` table. To force a full re-sync, clear that table:
 
 ```bash
-# Connect to the database
-docker compose exec db psql -U swarm -d swarm_checkins
-
-# Inside psql:
 DELETE FROM sync_state;
 \q
 ```
