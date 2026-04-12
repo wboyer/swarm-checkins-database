@@ -18,7 +18,8 @@
         "ms-python.pylint",
         "mtxr.sqltools",
         "mtxr.sqltools-driver-pg",
-        "ms-azuretools.vscode-bicep"
+        "ms-azuretools.vscode-bicep",
+        "github.vscode-github-actions"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
